@@ -1,0 +1,36 @@
+{
+  "name": "skipper/cinema-films",
+  "authors": [
+    {
+      "name": "Yurii Tatur",
+      "email": "skipper2107@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Skipper\\Films\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=7.1.0",
+    "skipper/repository": "dev-master",
+    "skipper/exceptions": "dev-master",
+    "symfony/validator": "^4.1",
+    "skipper/search": "dev-master",
+    "graphaware/neo4j-php-client": "^4.8"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:Skipper2107/exceptions.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Skipper2107/search-module.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:Skipper2107/repository.git"
+    }
+  ]
+}
