@@ -8,8 +8,6 @@
 
 namespace Skipper\Films\Entities;
 
-use Skipper\Repository\Contracts\Entity;
-
 trait Localed
 {
     /**
@@ -27,11 +25,9 @@ trait Localed
 
     /**
      * @param string $locale
-     * @return Entity
      */
-    public function setLocale(string $locale): Entity
+    public function setLocale(string $locale): void
     {
         $this->locale = $locale;
-        return $this;
     }
 }

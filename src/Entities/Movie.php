@@ -103,20 +103,20 @@ class Movie implements Entity
      * @param string $originalName
      * @param \DateTimeInterface $releaseDate
      * @param int $duration
-     * @param string $cover
+     * @param string $poster
      */
     public function __construct(
         string $name,
         string $originalName,
         \DateTimeInterface $releaseDate,
         int $duration,
-        string $cover
+        string $poster
     ) {
         $this->name = $name;
         $this->originalName = $originalName;
         $this->releaseDate = $releaseDate;
         $this->duration = $duration;
-        $this->poster = $cover;
+        $this->poster = $poster;
     }
 
     /**
