@@ -19,7 +19,11 @@ class CountryMapper implements MapperInterface
      */
     public function toArray(Entity $entity): array
     {
-        // TODO: Implement toArray() method.
+        return [
+            'id' => $entity->getId(),
+            'code' => $entity->getCode(),
+            'flag' => $entity->getFlag(),
+        ];
     }
 
     /**
@@ -28,6 +32,9 @@ class CountryMapper implements MapperInterface
      */
     public function toEntity(array $values): Entity
     {
-        // TODO: Implement toEntity() method.
+        $country = new Country($values['name'], $values['flag']);
+        $country->setId($values['id']);
+
+        return $country;
     }
 }

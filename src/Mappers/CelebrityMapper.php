@@ -13,13 +13,12 @@ use Skipper\Repository\Contracts\Entity;
 
 class CelebrityMapper implements MapperInterface
 {
-
     /**
      * @var CountryMapper
      */
     protected $countryMapper;
 
-    public function __construct(CountryMapper $countryMapper)
+    public function __construct(MapperInterface $countryMapper)
     {
         $this->countryMapper = $countryMapper;
     }

@@ -11,7 +11,8 @@ namespace Skipper\Films\Repositories;
 use GraphAware\Neo4j\Client\Client;
 use Skipper\Films\Entities\Localed;
 use Skipper\Films\Entities\Movie;
-use Skipper\Films\Mappers\MovieMapper;
+use Skipper\Films\Exceptions\EntityWasNotPublishedException;
+use Skipper\Films\Mappers\MapperFactory;
 use Skipper\Repository\Contracts\Entity;
 use Skipper\Repository\Exceptions\EntityNotFoundException;
 use Skipper\Repository\Exceptions\StorageException;
@@ -26,15 +27,15 @@ class GraphMovieLocaleAwareRepository implements MovieRepository
     protected $client;
 
     /**
-     * @var MovieMapper
+     * @var MapperFactory
      */
-    protected $movieMapper;
+    protected $mapperFactory;
 
-    public function __construct(string $locale, Client $client)
+    public function __construct(string $locale, Client $client, MapperFactory $mapperFactory)
     {
         $this->client = $client;
         $this->locale = $locale;
-        $this->movieMapper = new MovieMapper;
+        $this->mapperFactory = $mapperFactory;
     }
 
 
@@ -44,16 +45,24 @@ class GraphMovieLocaleAwareRepository implements MovieRepository
      * @param int $id
      * @return Movie
      * @throws EntityNotFoundException
+     * @throws \Skipper\Films\Exceptions\FilmException
      */
     public function getMovie(int $id): Movie
     {
         $query = <<<cypher
-MATCH (movie:Movie{id:{id})-[:LOCALED{locale:{locale}}]->(translate:MovieI18n)
-OPTIONAL MATCH (movie:Movie{id:{id})<-[rel:CREATED]-(person:Celebrity) 
-WHERE rel.role ['actor', 'director', 'writer', 'operator'] 
-OPTIONAL MATCH (movie:Movie{id:{id})<-[:PRODUCED]-(company:Producer)
+MATCH (country:Country)<-[:BELONGS_TO]-(movie:Movie{id:{id}})-[mTrans:LOCALED{locale:{locale}}]->(translate:MovieI18n)
+
+OPTIONAL MATCH (movie)<-[rel:INVOLVED_IN]-(person:Celebrity{published:1})-[cRel:BORN_TO]->(pCountry:Country)
+WHERE rel.role in ['actor', 'director', 'writer', 'operator'] 
+
+OPTIONAL MATCH (person)-[castTrans:LOCALED{locale:{locale}}]->(castTranslate:CelebrityI18n)
+
+OPTIONAL MATCH (movie)<-[:PRODUCED]-(company:Producer{published:1})-[pRel:BORN_TO]->(prodCountry:Country)
+
+OPTIONAL MATCH (movie)-[]->(genre:Genre)-[:LOCALED{locale:{locale}}]->(gTranslate:Country)
+
 RETURN movie, translate, collect(person) as cast, collect(company) as producers
-LIMIT 1 
+LIMIT 1
 cypher;
 
         $result = $this->client->run($query, ['id' => $id, 'locale' => $this->locale]);
@@ -70,7 +79,14 @@ cypher;
             );
         }
 
-        $movie = $this->movieMapper->toEntity(array_merge($dbMovieSet['movie'], $dbMovieSet['translate']));
+        /** @var Movie $movie */
+        $movie = $this->mapperFactory
+            ->getMapper(Movie::class)
+            ->toEntity(array_merge($dbMovieSet['movie'], $dbMovieSet['translate']));
+
+        if (false === $movie->isPublished()) {
+            throw new EntityWasNotPublishedException($movie);
+        }
 
         return $movie;
     }
@@ -102,7 +118,11 @@ cypher;
      */
     public function find(int $id): Entity
     {
-        // TODO: Implement find() method.
+        return $this->findOneBy([
+            'filter' => [
+                'id' => ['value' => $id],
+            ],
+        ]);
     }
 
     /**
@@ -116,6 +136,22 @@ cypher;
     }
 
     /**
+     * @param int[] $ids
+     * @return Entity[]
+     */
+    public function getAllByIds(array $ids): array
+    {
+        return $this->findAll([
+            'filter' => [
+                'id' => [
+                    'operator' => 'in',
+                    'value' => $ids,
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * @param array $criteria
      * @return Entity[]
      */
@@ -125,21 +161,15 @@ cypher;
     }
 
     /**
-     * @param int[] $ids
-     * @return Entity[]
-     */
-    public function getAllByIds(array $ids): array
-    {
-        // TODO: Implement getAllByIds() method.
-    }
-
-    /**
      * @param array $criteria
      * @return array
      * ['data' => $data, 'total' => $count] = $repo->getAllWithTotalCount([]);
      */
     public function getAllWithTotalCount(array $criteria): array
     {
-        // TODO: Implement getAllWithTotalCount() method.
+        return [
+            'data' => $this->findAll($criteria),
+            'total' => 0,
+        ];
     }
 }
