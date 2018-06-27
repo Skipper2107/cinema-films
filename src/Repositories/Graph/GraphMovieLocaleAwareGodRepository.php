@@ -14,6 +14,7 @@ use Skipper\Films\Entities\Movie;
 use Skipper\Films\Exceptions\EntityWasNotPublishedException;
 use Skipper\Films\Mappers\MapperFactory;
 use Skipper\Films\Repositories\MovieRepository;
+use Skipper\Repository\CommonQueries;
 use Skipper\Repository\Contracts\Entity;
 use Skipper\Repository\Exceptions\EntityNotFoundException;
 use Skipper\Repository\Exceptions\StorageException;
@@ -21,6 +22,7 @@ use Skipper\Repository\Exceptions\StorageException;
 class GraphMovieLocaleAwareGodRepository implements MovieRepository
 {
     use Localed;
+    use CommonQueries;
 
     /**
      * @var Client
@@ -129,20 +131,6 @@ cypher;
     }
 
     /**
-     * @param int $id
-     * @return Entity
-     * @throws EntityNotFoundException
-     */
-    public function find(int $id): Entity
-    {
-        return $this->findOneBy([
-            'filter' => [
-                'id' => ['value' => $id],
-            ],
-        ]);
-    }
-
-    /**
      * @param array $criteria
      * @throws EntityNotFoundException
      * @return Entity
@@ -150,22 +138,6 @@ cypher;
     public function findOneBy(array $criteria): Entity
     {
         // TODO: Implement findOneBy() method.
-    }
-
-    /**
-     * @param int[] $ids
-     * @return Entity[]
-     */
-    public function getAllByIds(array $ids): array
-    {
-        return $this->findAll([
-            'filter' => [
-                'id' => [
-                    'operator' => 'in',
-                    'value' => $ids,
-                ],
-            ],
-        ]);
     }
 
     /**
@@ -186,7 +158,25 @@ cypher;
     {
         return [
             'data' => $this->findAll($criteria),
-            'total' => 0,
+            'total' => $this->count($criteria),
         ];
+    }
+
+    /**
+     * @param array $criteria
+     * @return int
+     */
+    public function count(array $criteria): int
+    {
+        // TODO: Implement count() method.
+    }
+
+    /**
+     * @param array $criteria
+     * @return bool
+     */
+    public function exists(array $criteria): bool
+    {
+        // TODO: Implement exists() method.
     }
 }

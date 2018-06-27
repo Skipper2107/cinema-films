@@ -12,12 +12,12 @@ use GraphAware\Neo4j\Client\Client;
 use Skipper\Films\Entities\Country;
 use Skipper\Films\Repositories\CountryRepository;
 use Skipper\Repository\Contracts\Entity;
+use Skipper\Repository\CriteriaAwareRepository;
 use Skipper\Repository\Exceptions\EntityNotFoundException;
 use Skipper\Repository\Exceptions\StorageException;
 
-class GraphCountryRepository implements CountryRepository
+class GraphCountryRepository extends CriteriaAwareRepository implements CountryRepository
 {
-
     /**
      * @var Client
      */
@@ -30,7 +30,7 @@ class GraphCountryRepository implements CountryRepository
 
     /**
      * @param string $code
-     * @return Country
+     * @return Country|Entity
      * @throws EntityNotFoundException
      */
     public function findByCode(string $code): Country
@@ -40,16 +40,6 @@ class GraphCountryRepository implements CountryRepository
                 'code' => ['value' => $code],
             ],
         ]);
-    }
-
-    /**
-     * @param array $criteria
-     * @throws EntityNotFoundException
-     * @return Entity|Country
-     */
-    public function findOneBy(array $criteria): Entity
-    {
-        // TODO: Implement findOneBy() method.
     }
 
     /**
@@ -71,7 +61,9 @@ class GraphCountryRepository implements CountryRepository
      */
     public function findAll(array $criteria): array
     {
-        // TODO: Implement findAll() method.
+        $pagination = $this->getPaginationFromCriteria($criteria);
+        $sorting = $this->getSortsFromCriteria($criteria);
+        $filters = $this->getFiltersFromCriteria($criteria);
     }
 
     /**
@@ -95,39 +87,33 @@ class GraphCountryRepository implements CountryRepository
     }
 
     /**
-     * @param int $id
-     * @return Entity
-     * @throws EntityNotFoundException
-     */
-    public function find(int $id): Entity
-    {
-        return $this->findOneBy([
-            'filter' => [
-                'in' => ['value' => $id],
-            ],
-        ]);
-    }
-
-    /**
-     * @param int[] $ids
-     * @return Entity[]
-     */
-    public function getAllByIds(array $ids): array
-    {
-        return $this->findAll([
-            'filter' => [
-                'id' => ['value' => $ids, 'operator' => 'in',],
-            ],
-        ]);
-    }
-
-    /**
      * @param array $criteria
      * @return array
      * ['data' => $data, 'total' => $count] = $repo->getAllWithTotalCount([]);
      */
     public function getAllWithTotalCount(array $criteria): array
     {
-        return [];
+        return [
+            'data' => $this->findAll($criteria),
+            'total' => $this->count($criteria),
+        ];
+    }
+
+    /**
+     * @param array $criteria
+     * @return int
+     */
+    public function count(array $criteria): int
+    {
+        // TODO: Implement count() method.
+    }
+
+    /**
+     * @param array $criteria
+     * @return bool
+     */
+    public function exists(array $criteria): bool
+    {
+        // TODO: Implement exists() method.
     }
 }
