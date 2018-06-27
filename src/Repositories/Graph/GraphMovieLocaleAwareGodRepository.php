@@ -6,18 +6,19 @@
  * Time: 3:48 PM
  */
 
-namespace Skipper\Films\Repositories;
+namespace Skipper\Films\Repositories\Graph;
 
 use GraphAware\Neo4j\Client\Client;
 use Skipper\Films\Entities\Localed;
 use Skipper\Films\Entities\Movie;
 use Skipper\Films\Exceptions\EntityWasNotPublishedException;
 use Skipper\Films\Mappers\MapperFactory;
+use Skipper\Films\Repositories\MovieRepository;
 use Skipper\Repository\Contracts\Entity;
 use Skipper\Repository\Exceptions\EntityNotFoundException;
 use Skipper\Repository\Exceptions\StorageException;
 
-class GraphMovieLocaleAwareRepository implements MovieRepository
+class GraphMovieLocaleAwareGodRepository implements MovieRepository
 {
     use Localed;
 
@@ -50,18 +51,29 @@ class GraphMovieLocaleAwareRepository implements MovieRepository
     public function getMovie(int $id): Movie
     {
         $query = <<<cypher
-MATCH (country:Country)<-[:BELONGS_TO]-(movie:Movie{id:{id}})-[mTrans:LOCALED{locale:{locale}}]->(translate:MovieI18n)
+MATCH (country:Country)<-[:BELONGS_TO]-(movie:Movie{id:{id}, published:1})-[mTrans:LOCALED{locale:{locale}}]->(translate:MovieI18n)
 
-OPTIONAL MATCH (movie)<-[rel:INVOLVED_IN]-(person:Celebrity{published:1})-[cRel:BORN_TO]->(pCountry:Country)
-WHERE rel.role in ['actor', 'director', 'writer', 'operator'] 
+OPTIONAL MATCH (movie)<-[rel:INVOLVED_IN]-(person:Celebrity{published:1})-[:BORN_TO]->(personCountry:Country),
+               (person)-[:LOCALED{locale:{locale}}]->(personTrans:CelebrityI18n)
+WHERE rel.role IN ['actor', 'writer', 'director', 'operator']
 
-OPTIONAL MATCH (person)-[castTrans:LOCALED{locale:{locale}}]->(castTranslate:CelebrityI18n)
+OPTIONAL MATCH (movie)<-[:PRODUCED]-(company:Producer{published:1})-[:BORN_TO]->(prodCountry:Country)
 
-OPTIONAL MATCH (movie)<-[:PRODUCED]-(company:Producer{published:1})-[pRel:BORN_TO]->(prodCountry:Country)
+OPTIONAL MATCH (movie)-->(genre:Genre)-[:LOCALED{locale:{locale}}]->(gTranslate:GenreI18n)
 
-OPTIONAL MATCH (movie)-[]->(genre:Genre)-[:LOCALED{locale:{locale}}]->(gTranslate:Country)
+WITH {
+  movie:[movie, translate], 
+  countries: collect(country), 
+  genres: collect([genre, gTranslate]),
+  cast: collect({
+      person: [person, personTrans],
+      role: rel.role,
+      country: personCountry
+  }),
+  producers: collect({company: company, country:prodCountry})
+} AS r
 
-RETURN movie, translate, collect(person) as cast, collect(company) as producers
+RETURN r
 LIMIT 1
 cypher;
 
@@ -82,7 +94,7 @@ cypher;
         /** @var Movie $movie */
         $movie = $this->mapperFactory
             ->getMapper(Movie::class)
-            ->toEntity(array_merge($dbMovieSet['movie'], $dbMovieSet['translate']));
+            ->toEntity($dbMovieSet['movie']);
 
         if (false === $movie->isPublished()) {
             throw new EntityWasNotPublishedException($movie);
@@ -92,13 +104,18 @@ cypher;
     }
 
     /**
-     * @param Entity $entity
+     * @param Entity|Movie $entity
      * @throws StorageException
      * @return bool
+     * @throws \Skipper\Films\Exceptions\FilmException
      */
     public function save(Entity $entity): bool
     {
-        // TODO: Implement save() method.
+        $movieArray = $this->mapperFactory->getMapper(Movie::class)->toArray($entity);
+
+        $query = <<<cypher
+cypher;
+
     }
 
     /**
