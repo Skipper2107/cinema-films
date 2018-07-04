@@ -9,8 +9,12 @@
 namespace Skipper\Films\Repositories\Graph;
 
 use GraphAware\Neo4j\Client\Client;
+use GraphAware\Neo4j\Client\Exception\Neo4jException;
+use Skipper\Exceptions\HttpCode;
 use Skipper\Films\Entities\Country;
+use Skipper\Films\Mappers\MapperFactory;
 use Skipper\Films\Repositories\CountryRepository;
+use Skipper\Films\Repositories\CypherHelper;
 use Skipper\Repository\Contracts\Entity;
 use Skipper\Repository\CriteriaAwareRepository;
 use Skipper\Repository\Exceptions\EntityNotFoundException;
@@ -18,14 +22,22 @@ use Skipper\Repository\Exceptions\StorageException;
 
 class GraphCountryRepository extends CriteriaAwareRepository implements CountryRepository
 {
+    use CypherHelper;
+
     /**
      * @var Client
      */
     protected $client;
 
-    public function __construct(Client $client)
+    /**
+     * @var MapperFactory
+     */
+    protected $mappers;
+
+    public function __construct(Client $client, MapperFactory $mappers)
     {
         $this->client = $client;
+        $this->mappers = $mappers;
     }
 
     /**
@@ -45,6 +57,8 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
     /**
      * @param string[] $codes
      * @return Country[]
+     * @throws StorageException
+     * @throws \Skipper\Films\Exceptions\FilmException
      */
     public function findAllByCodes(array $codes): array
     {
@@ -58,12 +72,37 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
     /**
      * @param array $criteria
      * @return Entity[]
+     * @throws StorageException
+     * @throws \Skipper\Films\Exceptions\FilmException
      */
     public function findAll(array $criteria): array
     {
         $pagination = $this->getPaginationFromCriteria($criteria);
         $sorting = $this->getSortsFromCriteria($criteria);
         $filters = $this->getFiltersFromCriteria($criteria);
+
+        $query = sprintf(
+            'MATCH (c:Country) %s RETURN collect(c) %s SKIP %d LIMIT %d',
+            $this->applyFilters('c', $filters),
+            $this->applyOrders('c', $sorting),
+            $pagination->getOffset(),
+            $pagination->getLimit()
+        );
+
+        try {
+            $result = $this->client->run($query)->records();
+        } catch (Neo4jException $e) {
+            throw new StorageException(HttpCode::fromCode($e->getCode()), $e->getMessage(), [
+                'criteria' => $criteria,
+            ], $e);
+        }
+
+        $mapper = $this->mappers->getMapper(Country::class);
+        foreach ($result as $record) {
+            $countries[] = $mapper->toEntity($record->values());
+        }
+
+        return $countries ?? [];
     }
 
     /**
@@ -90,6 +129,8 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
      * @param array $criteria
      * @return array
      * ['data' => $data, 'total' => $count] = $repo->getAllWithTotalCount([]);
+     * @throws StorageException
+     * @throws \Skipper\Films\Exceptions\FilmException
      */
     public function getAllWithTotalCount(array $criteria): array
     {
@@ -102,18 +143,35 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
     /**
      * @param array $criteria
      * @return int
+     * @throws StorageException
      */
     public function count(array $criteria): int
     {
-        // TODO: Implement count() method.
+        $filters = $this->getFiltersFromCriteria($criteria);
+
+        $query = sprintf(
+            'MATCH (c:Country) %s RETURN count(*) as count',
+            $this->applyFilters('c', $filters)
+        );
+
+        try {
+            $result = $this->client->run($query)->firstRecord();
+        } catch (Neo4jException $e) {
+            throw new StorageException(HttpCode::fromCode($e->getCode()), $e->getMessage(), [
+                'criteria' => $criteria,
+            ], $e);
+        }
+
+        return $result->get('count');
     }
 
     /**
      * @param array $criteria
      * @return bool
+     * @throws StorageException
      */
     public function exists(array $criteria): bool
     {
-        // TODO: Implement exists() method.
+        return $this->count($criteria) > 0;
     }
 }
