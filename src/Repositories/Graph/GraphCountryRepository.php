@@ -10,7 +10,6 @@ namespace Skipper\Films\Repositories\Graph;
 
 use GraphAware\Neo4j\Client\Client;
 use GraphAware\Neo4j\Client\Exception\Neo4jException;
-use Skipper\Exceptions\HttpCode;
 use Skipper\Films\Entities\Country;
 use Skipper\Films\Mappers\MapperFactory;
 use Skipper\Films\Repositories\CountryRepository;
@@ -92,9 +91,9 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
         try {
             $result = $this->client->run($query)->records();
         } catch (Neo4jException $e) {
-            throw new StorageException(HttpCode::fromCode($e->getCode()), $e->getMessage(), [
+            throw new StorageException($e->getMessage(), [
                 'criteria' => $criteria,
-            ], $e);
+            ], $e, $e->getCode());
         }
 
         $mapper = $this->mappers->getMapper(Country::class);
@@ -157,9 +156,9 @@ class GraphCountryRepository extends CriteriaAwareRepository implements CountryR
         try {
             $result = $this->client->run($query)->firstRecord();
         } catch (Neo4jException $e) {
-            throw new StorageException(HttpCode::fromCode($e->getCode()), $e->getMessage(), [
+            throw new StorageException($e->getMessage(), [
                 'criteria' => $criteria,
-            ], $e);
+            ], $e, $e->getCode());
         }
 
         return $result->get('count');

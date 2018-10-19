@@ -44,13 +44,14 @@ class CelebrityMapper implements MapperInterface
     /**
      * @param array $values
      * @return Entity|Celebrity
+     * @throws \Exception
      */
     public function toEntity(array $values): Entity
     {
         return new Celebrity(
             $values['name'],
             $values['original_name'],
-            new \DateTime($values['birth']),
+            new \DateTimeImmutable($values['birth']),
             $this->countryMapper->toEntity($values['country']),
             $values['avatar'],
             $values['biography']

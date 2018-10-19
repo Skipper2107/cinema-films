@@ -22,15 +22,15 @@
   "repositories": [
     {
       "type": "vcs",
-      "url": "git@github.com:Skipper2107/exceptions.git"
+      "url": "git@gitlab.com:Skipper2107/exceptions.git"
     },
     {
       "type": "vcs",
-      "url": "git@github.com:Skipper2107/search-module.git"
+      "url": "git@gitlab.com:Skipper2107/search-module.git"
     },
     {
       "type": "vcs",
-      "url": "git@github.com:Skipper2107/repository.git"
+      "url": "git@gitlab.com:Skipper2107/repository.git"
     }
   ]
 }

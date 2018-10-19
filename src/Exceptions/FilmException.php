@@ -9,16 +9,18 @@
 namespace Skipper\Films\Exceptions;
 
 use Skipper\Exceptions\DomainException;
-use Skipper\Exceptions\HttpCode;
+use Skipper\Exceptions\Error;
 use Throwable;
 
 class FilmException extends DomainException
 {
-    public function __construct(HttpCode $code, string $message = '', array $context = [], Throwable $previous = null)
+    public function __construct(string $message = '', array $context = [], Throwable $previous = null, int $code = 0)
     {
-        if (false === empty($message)) {
-            $message = ':' . $message;
-        }
-        parent::__construct($code, 'FilmError' . $message, $context, $previous);
+        parent::__construct($message, $context, $previous, $code);
+    }
+
+    protected function addInstantError(): ?Error
+    {
+        return new Error('Film error', 'internalError', 'film');
     }
 }

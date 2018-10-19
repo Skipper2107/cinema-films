@@ -8,7 +8,6 @@
 
 namespace Skipper\Films\Mappers;
 
-use Skipper\Exceptions\HttpCode;
 use Skipper\Films\Entities\Celebrity;
 use Skipper\Films\Entities\Country;
 use Skipper\Films\Entities\Genre;
@@ -36,9 +35,9 @@ class MapperFactory
             case Producer::class:
                 return new ProducerMapper(new CountryMapper);
             default:
-                throw new FilmException(HttpCode::forbidden(), 'Unknown entity type', [
+                throw new FilmException('Unknown entity type', [
                     'className' => $entityName,
-                ]);
+                ], null, 400);
         }
     }
 }
